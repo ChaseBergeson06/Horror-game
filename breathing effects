@@ -1,0 +1,24 @@
+using UnityEngine;
+
+public class BreathingEffect : MonoBehaviour
+{
+    public float amplitude = 0.05f; // How high/low the item moves (adjust for effect strength)
+    public float frequency = 1.0f;  // How fast the item moves (adjust for breathing speed)
+
+    private Vector3 startPos;       // Original position of the item
+
+    void Start()
+    {
+        // Store the original position of the item
+        startPos = transform.localPosition;
+    }
+
+    void Update()
+    {
+        // Calculate new Y position based on a sine wave
+        float newY = startPos.y + Mathf.Sin(Time.time * frequency) * amplitude;
+
+        // Update the position of the item while keeping X and Z the same
+        transform.localPosition = new Vector3(startPos.x, newY, startPos.z);
+    }
+}
