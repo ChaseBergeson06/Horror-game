@@ -1,0 +1,104 @@
+using UnityEngine;
+using System.Collections;
+
+public class FlashlightController : MonoBehaviour
+{
+    public Light flashlight;
+    public float flickerIntensity = 0.2f;
+    public float flickerFrequency = 5f;
+    public float shortOutProbability = 0.01f; // Probability of the flashlight turning off momentarily
+    public float shortOutDuration = 0.1f; // Duration of the short-out in seconds
+
+    public AudioSource onSound;      // Audio source for the flashlight on sound
+    public AudioSource offSound;     // Audio source for the flashlight off sound
+    public AudioSource buzzingSound; // Audio source for the continuous buzzing sound
+    public AudioSource flickerSound; // Audio source for the flicker sound
+
+    private bool isFlashlightOn = false;
+    private float flickerTimer;
+    private float shortOutTimer;
+    private bool isShortOut = false;
+
+    void Start()
+    {
+        flashlight.enabled = false;      // Start with flashlight off
+        buzzingSound.loop = true;        // Set buzzing sound to loop
+        buzzingSound.volume = 0;         // Start buzzing volume at 0 since the flashlight is off
+    }
+
+    void Update()
+    {
+        // Toggle flashlight on/off with the F key
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            isFlashlightOn = !isFlashlightOn;
+            flashlight.enabled = isFlashlightOn;
+            
+            // Play the appropriate sound based on flashlight state
+            if (isFlashlightOn)
+            {
+                if (onSound != null) onSound.Play(); // Play on sound
+                buzzingSound.volume = 0.5f;          // Set buzzing volume (adjust as needed)
+                
+                if (!buzzingSound.isPlaying)
+                {
+                    buzzingSound.Play();             // Start buzzing sound
+                }
+            }
+            else
+            {
+                if (offSound != null) offSound.Play(); // Play off sound
+                buzzingSound.volume = 0;               // Mute buzzing sound
+            }
+        }
+
+        // If the flashlight is on, handle flickering and short-outs
+        if (isFlashlightOn)
+        {
+            flickerTimer += Time.deltaTime * flickerFrequency;
+            float flickerValue = Mathf.PerlinNoise(flickerTimer, 0f) * flickerIntensity;
+            flashlight.intensity = 1000f + flickerValue;
+
+            // Short-out logic: occasionally turn off the flashlight for a brief moment
+            if (!isShortOut)
+            {
+                shortOutTimer += Time.deltaTime;
+                if (shortOutTimer >= Random.Range(0.1f, 1000f)) // Random interval to trigger a short-out
+                {
+                    if (Random.value < shortOutProbability)
+                    {
+                        StartCoroutine(ShortOutFlashlight());
+                    }
+                    shortOutTimer = 0f;
+                }
+            }
+        }
+    }
+
+    private IEnumerator ShortOutFlashlight()
+    {
+        isShortOut = true;
+        flashlight.enabled = false; // Temporarily turn off the flashlight
+        
+        // Stop buzzing sound and play flicker sound
+        buzzingSound.Pause();
+        if (flickerSound != null)
+        {
+            // 10% chance to play the flicker sound
+            if (Random.value < 0.1f) // 0.1 represents 10% chance
+            {
+                flickerSound.Play();
+            }
+        }
+
+        
+        yield return new WaitForSeconds(shortOutDuration); // Wait for the short-out duration
+        
+        flashlight.enabled = true; // Turn the flashlight back on
+        
+        // Resume buzzing sound
+        buzzingSound.UnPause();
+        
+        isShortOut = false;
+    }
+}
